@@ -6,7 +6,7 @@ import { Label } from './ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { takeScreenshot, scheduleScreenshots, stopSchedule } from '../api';
 import { DingTalkConfig } from '../types';
-import { Camera, Clock, StopCircle } from 'lucide-react';
+import { Camera, Clock, StopCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DashboardHeaderProps {
@@ -103,6 +103,11 @@ export function DashboardHeader({
                   配置截图并发送到钉钉
                 </DialogDescription>
               </DialogHeader>
+              
+              <div className="flex items-center gap-2 p-3 text-amber-600 bg-amber-50 rounded-md mb-3">
+                <AlertTriangle size={18} />
+                <p className="text-sm">注意：在部署版本中，截图功能已禁用以节省内存资源。</p>
+              </div>
               
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
