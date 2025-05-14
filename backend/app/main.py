@@ -1,12 +1,10 @@
-from fastapi import FastAPI, Query, Body, HTTPException
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any, Optional
-import os
 from datetime import datetime, timedelta
 
 from app.models import SalesData, PlatformSummary
 from app.scrapers import generate_mock_sales_data, get_platform_summary
-from app.scheduler import scheduler_instance
 
 app = FastAPI(title="DJI Sales Dashboard API")
 
@@ -79,53 +77,36 @@ async def get_products():
 
 
 @app.post("/api/screenshot")
-async def take_screenshot(
-    user_ids: List[str] = Body(..., embed=True),
-    frontend_url: str = Body(..., embed=True)
-):
+async def take_screenshot(user_ids: List[str] = [], frontend_url: str = ""):
     """
-    Manually trigger a screenshot and send it to specified DingTalk users
+    Mock endpoint for screenshot functionality
     """
-    scheduler_instance.set_frontend_url(frontend_url)
-    scheduler_instance.set_user_ids(user_ids)
-    
-    success = scheduler_instance.take_screenshot_now()
-    
-    if success:
-        return {"status": "success", "message": "Screenshot taken and sent"}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to take or send screenshot")
+    return {
+        "status": "success", 
+        "message": "Screenshot functionality is disabled in the deployed version to conserve memory"
+    }
 
 
 @app.post("/api/schedule")
-async def schedule_screenshots(
-    user_ids: List[str] = Body(..., embed=True),
-    frontend_url: str = Body(..., embed=True)
-):
+async def schedule_screenshots(user_ids: List[str] = [], frontend_url: str = ""):
     """
-    Start scheduled screenshots
+    Mock endpoint for scheduling screenshots
     """
-    scheduler_instance.set_frontend_url(frontend_url)
-    scheduler_instance.set_user_ids(user_ids)
-    
-    scheduler_instance.start()
-    
-    interval_seconds = int(os.getenv("SCREENSHOT_INTERVAL", 3600))
-    interval_hours = interval_seconds / 3600
-    
     return {
         "status": "success", 
-        "message": f"Scheduled screenshots every {interval_hours} hours"
+        "message": "Screenshot scheduling is disabled in the deployed version to conserve memory"
     }
 
 
 @app.post("/api/stop-schedule")
 async def stop_schedule():
     """
-    Stop scheduled screenshots
+    Mock endpoint for stopping scheduled screenshots
     """
-    scheduler_instance.stop()
-    return {"status": "success", "message": "Scheduled screenshots stopped"}
+    return {
+        "status": "success", 
+        "message": "Screenshot scheduling is disabled in the deployed version"
+    }
 
 
 @app.on_event("startup")
@@ -135,11 +116,3 @@ async def startup_event():
     """
     global sales_data
     sales_data = generate_mock_sales_data()
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Clean up on shutdown
-    """
-    scheduler_instance.stop()
