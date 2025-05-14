@@ -18,8 +18,3 @@ export interface ProductSummary {
   total_sales: number;
   total_revenue: number;
 }
-
-export interface DingTalkConfig {
-  userIds: string[];
-  frontendUrl: string;
-}

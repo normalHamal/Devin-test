@@ -76,37 +76,7 @@ async def get_products():
     return {"products": products}
 
 
-@app.post("/api/screenshot")
-async def take_screenshot(user_ids: List[str] = [], frontend_url: str = ""):
-    """
-    Mock endpoint for screenshot functionality
-    """
-    return {
-        "status": "success", 
-        "message": "Screenshot functionality is disabled in the deployed version to conserve memory"
-    }
 
-
-@app.post("/api/schedule")
-async def schedule_screenshots(user_ids: List[str] = [], frontend_url: str = ""):
-    """
-    Mock endpoint for scheduling screenshots
-    """
-    return {
-        "status": "success", 
-        "message": "Screenshot scheduling is disabled in the deployed version to conserve memory"
-    }
-
-
-@app.post("/api/stop-schedule")
-async def stop_schedule():
-    """
-    Mock endpoint for stopping scheduled screenshots
-    """
-    return {
-        "status": "success", 
-        "message": "Screenshot scheduling is disabled in the deployed version"
-    }
 
 
 @app.on_event("startup")

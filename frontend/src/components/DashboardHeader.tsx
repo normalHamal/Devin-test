@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { takeScreenshot, scheduleScreenshots, stopSchedule } from '../api';
-import { DingTalkConfig } from '../types';
-import { Camera, Clock, StopCircle, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Camera, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import html2canvas from 'html2canvas';
 
 interface DashboardHeaderProps {
   days: number;
@@ -30,57 +28,54 @@ export function DashboardHeader({
   platforms,
   products,
 }: DashboardHeaderProps) {
-  const [userIds, setUserIds] = useState<string>('');
-  const [frontendUrl, setFrontendUrl] = useState<string>(window.location.href);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   
   const handleTakeScreenshot = async () => {
-    if (!userIds) {
-      toast.error('Please enter at least one DingTalk user ID');
-      return;
-    }
-    
     try {
-      const config: DingTalkConfig = {
-        userIds: userIds.split(',').map(id => id.trim()),
-        frontendUrl,
-      };
+      setIsCapturing(true);
       
-      const result = await takeScreenshot(config);
-      toast.success(result.message);
       setIsDialogOpen(false);
+      
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const dashboardElement = document.getElementById('dashboard-container');
+      
+      if (!dashboardElement) {
+        toast.error('无法找到仪表板元素');
+        setIsCapturing(false);
+        return;
+      }
+      
+      const canvas = await html2canvas(dashboardElement, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const dataUrl = canvas.toDataURL('image/png');
+      setScreenshotPreview(dataUrl);
+      setIsDialogOpen(true);
+      setIsCapturing(false);
     } catch (error) {
-      toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`截图错误: ${error instanceof Error ? error.message : '未知错误'}`);
+      setIsCapturing(false);
     }
   };
   
-  const handleScheduleScreenshots = async () => {
-    if (!userIds) {
-      toast.error('Please enter at least one DingTalk user ID');
-      return;
-    }
+  const handleDownloadScreenshot = () => {
+    if (!screenshotPreview) return;
     
-    try {
-      const config: DingTalkConfig = {
-        userIds: userIds.split(',').map(id => id.trim()),
-        frontendUrl,
-      };
-      
-      const result = await scheduleScreenshots(config);
-      toast.success(result.message);
-      setIsDialogOpen(false);
-    } catch (error) {
-      toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-  
-  const handleStopSchedule = async () => {
-    try {
-      const result = await stopSchedule();
-      toast.success(result.message);
-    } catch (error) {
-      toast.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    const link = document.createElement('a');
+    link.href = screenshotPreview;
+    link.download = `DJI-销售数据-${new Date().toISOString().split('T')[0]}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('截图已下载');
   };
   
   return (
@@ -89,70 +84,46 @@ export function DashboardHeader({
         <h1 className="text-2xl font-bold">DJI 产品销售数据看板</h1>
         
         <div className="flex flex-wrap gap-2">
+          {isCapturing ? (
+            <Button variant="outline" disabled>
+              <span className="animate-pulse">截图中...</span>
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={handleTakeScreenshot} className="flex items-center gap-2">
+              <Camera size={16} />
+              <span>截图</span>
+            </Button>
+          )}
+          
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Camera size={16} />
-                <span>截图</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>截图设置</DialogTitle>
-                <DialogDescription>
-                  配置截图并发送到钉钉
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="flex items-center gap-2 p-3 text-amber-600 bg-amber-50 rounded-md mb-3">
-                <AlertTriangle size={18} />
-                <p className="text-sm">注意：在部署版本中，截图功能已禁用以节省内存资源。</p>
-              </div>
-              
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="userIds" className="text-right">
-                    钉钉用户ID
-                  </Label>
-                  <Input
-                    id="userIds"
-                    placeholder="用户ID，多个用逗号分隔"
-                    className="col-span-3"
-                    value={userIds}
-                    onChange={(e) => setUserIds(e.target.value)}
+            {screenshotPreview && (
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>截图预览</DialogTitle>
+                  <DialogDescription>
+                    您可以下载此截图或关闭此窗口
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="overflow-auto max-h-[70vh]">
+                  <img 
+                    src={screenshotPreview} 
+                    alt="Dashboard Screenshot" 
+                    className="w-full h-auto rounded-md border border-gray-200"
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="frontendUrl" className="text-right">
-                    前端URL
-                  </Label>
-                  <Input
-                    id="frontendUrl"
-                    className="col-span-3"
-                    value={frontendUrl}
-                    onChange={(e) => setFrontendUrl(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <DialogFooter className="flex gap-2">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  取消
-                </Button>
-                <Button onClick={handleTakeScreenshot} className="flex items-center gap-2">
-                  <Camera size={16} />
-                  <span>立即截图</span>
-                </Button>
-                <Button onClick={handleScheduleScreenshots} className="flex items-center gap-2">
-                  <Clock size={16} />
-                  <span>定时截图</span>
-                </Button>
-                <Button variant="destructive" onClick={handleStopSchedule} className="flex items-center gap-2">
-                  <StopCircle size={16} />
-                  <span>停止定时</span>
-                </Button>
-              </DialogFooter>
-            </DialogContent>
+                
+                <DialogFooter className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    关闭
+                  </Button>
+                  <Button onClick={handleDownloadScreenshot} className="flex items-center gap-2">
+                    <Download size={16} />
+                    <span>下载截图</span>
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            )}
           </Dialog>
         </div>
       </div>
